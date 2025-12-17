@@ -1,0 +1,8 @@
+device_hostname=vetra-demo-player
+device_user1=vetra
+image_name=vetra-player-demo-arm64
+player_chromium=yes
+player_url=https://player.vetra-demo.ch
+app_url=https://app.vetra-demo.ch
+jwt_issuer=https://api.vetra-demo.ch
+device_locale1=en_US.UTF-8 UTF-8

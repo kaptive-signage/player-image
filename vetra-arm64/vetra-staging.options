@@ -1,7 +1,7 @@
 device_hostname=vetra-player
 device_user1=vetra
 device_user1pass=vetra
-image_name=vetra-player-chromium-arm64
+image_name=vetra-player-staging-arm64
 player_chromium=yes
 player_url=https://player.vetra.staging.int.statesystems.ch
 app_url=https://app.vetra.staging.int.statesystems.ch
