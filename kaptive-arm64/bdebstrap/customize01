@@ -1,0 +1,101 @@
+#!/bin/sh
+
+set -eu
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "en_US.UTF-8 UTF-8" > $1/etc/locale.gen
+
+chroot $1 apt install -y locales
+
+# Install bun
+chroot $1 /bin/sh -c "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash"
+
+# Install packages from the packages folder
+PACKAGES_DIR="${SCRIPT_DIR}/../packages"
+
+if [ -d "$PACKAGES_DIR" ]; then
+    # Prevent services from starting during installation
+    cat > "$1/usr/sbin/policy-rc.d" << 'EOF'
+#!/bin/sh
+exit 101
+EOF
+    chmod +x "$1/usr/sbin/policy-rc.d"
+
+    # Mask systemctl to prevent systemd calls in postinst scripts
+    if [ ! -e "$1/usr/bin/systemctl.orig" ] && [ -e "$1/usr/bin/systemctl" ]; then
+        mv "$1/usr/bin/systemctl" "$1/usr/bin/systemctl.orig"
+    fi
+    cat > "$1/usr/bin/systemctl" << 'EOF'
+#!/bin/sh
+echo "Skipping systemctl $@"
+exit 0
+EOF
+    chmod +x "$1/usr/bin/systemctl"
+
+    for pkg in "$PACKAGES_DIR"/*.deb; do
+        if [ -f "$pkg" ]; then
+            pkg_name=$(basename "$pkg")
+            echo "Installing package: $pkg_name"
+            cp "$pkg" "$1/tmp/"
+            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt install -y /tmp/$pkg_name"
+            rm "$1/tmp/$pkg_name"
+        fi
+    done
+
+    # Restore original systemctl
+    if [ -e "$1/usr/bin/systemctl.orig" ]; then
+        mv "$1/usr/bin/systemctl.orig" "$1/usr/bin/systemctl"
+    fi
+
+    # Remove policy-rc.d
+    rm -f "$1/usr/sbin/policy-rc.d"
+fi
+
+# Write out our systemd services
+# First the labwc compositor service
+cat ../labwc.service.tpl | sed \
+   -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
+   -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \
+   > $1/etc/systemd/system/labwc.service
+
+
+# Finally the squeekboard virtual keyboard service
+cat ../squeekboard.service.tpl | sed \
+   -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
+   -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \
+   > $1/etc/systemd/system/squeekboard.service
+
+# Setup kaptive device agent
+mkdir -p $1/opt/kaptive
+
+# Set permissions on /opt/kaptive folder recursively
+chroot $1 chown -R $IGconf_device_user1:$IGconf_device_user1 /opt/kaptive
+chroot $1 chmod -R 755 /opt/kaptive
+
+# Create labwc config directory and file
+mkdir -p $1/home/$IGconf_device_user1/.config/labwc
+cat ../labwc-rc.xml.tpl > $1/home/$IGconf_device_user1/.config/labwc/rc.xml
+cat ../labwc-autostart.tpl > $1/home/$IGconf_device_user1/.config/labwc/autostart
+chroot $1 chown -R $IGconf_device_user1:$IGconf_device_user1 /home/$IGconf_device_user1/.config
+
+# Customize NetworkManager-wait-online.service timeout
+if [ -f "$1/lib/systemd/system/NetworkManager-wait-online.service" ]; then
+    sed -i 's/Environment=NM_ONLINE_TIMEOUT=60/Environment=NM_ONLINE_TIMEOUT=15/' "$1/lib/systemd/system/NetworkManager-wait-online.service"
+fi
+
+# Customize systemd-networkd-wait-online.service timeout
+if [ -f "$1/lib/systemd/system/systemd-networkd-wait-online.service" ]; then
+    sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=15|' "$1/lib/systemd/system/systemd-networkd-wait-online.service"
+fi
+
+# Enable services so they start automatically
+$BDEBSTRAP_HOOKS/enable-units "$1" labwc
+$BDEBSTRAP_HOOKS/enable-units "$1" squeekboard
+$BDEBSTRAP_HOOKS/enable-units "$1" kaptive-player-agent
+$BDEBSTRAP_HOOKS/enable-units "$1" kaptive-launcher
+$BDEBSTRAP_HOOKS/enable-units "$1" nginx
+
+# Enable network manager wait online service
+$BDEBSTRAP_HOOKS/enable-units "$1" NetworkManager-wait-online.service

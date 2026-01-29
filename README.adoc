@@ -1,6 +1,6 @@
-= vetra-player image
+= kaptive-player image
 
-Small image for Raspberry Pi 5 with the vetra player.
+Small image for Raspberry Pi 5 with the kaptive player.
 
 == Build
 
@@ -11,16 +11,9 @@ docker compose build
 docker compose run --rm custom-rpi-image
 ```
 
-This image is build using the `rpi-image-gen` tool. To build the electron image, run:
+This image is build using the `rpi-image-gen` tool. To build the staging image run:
 
 ```bash
-rpi-image-gen/build.sh -o ~/vetra-arm64/vetra.options -D ~/vetra-arm64/ -c vetra
-cp /home/imagegen/rpi-image-gen/work/vetra-player-arm64/deploy/* /tmp/vetra-player-arm64/out
-```
-
-To build the chromium image run:
-
-```bash
-rpi-image-gen/build.sh -o ~/vetra-arm64/vetra-chromium.options -D ~/vetra-arm64/ -c vetra
-cp /home/imagegen/rpi-image-gen/work/vetra-player-chromium-arm64/deploy/* /tmp/vetra-player-arm64/out
+rpi-image-gen/build.sh -o ~/kaptive-arm64/kaptive-staging.options -D ~/kaptive-arm64/ -c kaptive
+cp /home/imagegen/rpi-image-gen/work/kaptive-player-staging-arm64/deploy/* /tmp/kaptive-player-arm64/out
 ```

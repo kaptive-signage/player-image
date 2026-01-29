@@ -1,1 +1,0 @@
-swaybg -i /usr/share/plymouth/themes/vetra/vetra-logo.png -o '*' -m center >/dev/null 2>&1 &

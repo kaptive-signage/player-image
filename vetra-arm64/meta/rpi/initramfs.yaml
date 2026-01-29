@@ -1,7 +1,0 @@
----
-name: rpi-initramfs
-mmdebstrap:
-  packages:
-    - initramfs-tools
-    - busybox
-    - coreutils

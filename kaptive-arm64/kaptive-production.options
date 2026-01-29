@@ -1,0 +1,8 @@
+device_hostname=kaptive-player
+device_user1=kaptive
+image_name=kaptive-player-production-arm64
+player_chromium=yes
+player_url=https://player.kaptive.ch
+app_url=https://app.kaptive.ch
+jwt_issuer=https://api.kaptive.ch
+device_locale1=en_US.UTF-8 UTF-8

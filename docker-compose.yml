@@ -6,5 +6,5 @@ services:
         tty: true
         image: rpi-web-kiosk:latest
         volumes:
-            - ./vetra-arm64:/home/imagegen/vetra-arm64
-            - ./out:/tmp/vetra-player-arm64/out
+            - ./kaptive-arm64:/home/imagegen/kaptive-arm64
+            - ./out:/tmp/kaptive-player-arm64/out

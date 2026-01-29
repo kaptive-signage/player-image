@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Kaptive
+Description=Kaptive boot splash theme
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/kaptive
+ScriptFile=/usr/share/plymouth/themes/kaptive/kaptive.script
