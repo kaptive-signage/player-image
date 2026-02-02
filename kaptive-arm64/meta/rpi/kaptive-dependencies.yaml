@@ -1,0 +1,29 @@
+---
+name: rpi-kaptive-dependencies
+mmdebstrap:
+  packages:
+    - raspi-config
+    - python3
+    - sed
+    - grep
+    - git
+    - raspberrypi-sys-mods
+    - labwc
+    - curl
+    - wlr-randr
+    - chromium
+    - rpi-chromium-mods
+    - libwidevinecdm0
+    - libgl1-mesa-dri
+    - libgles1
+    - libgles2-mesa
+    - xcompmgr
+    - vulkan-tools
+    - mesa-vulkan-drivers
+    - plymouth
+    - plymouth-themes
+    - swaybg
+    - libssl-dev
+    - grim
+    - libnss3-tools
+    - unzip
