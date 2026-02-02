@@ -1,94 +1,63 @@
 #!/bin/sh
-# Customize hook for bdebstrap: Add kaptive configuration to Raspberry Pi's firstboot
-# This patches the existing firstboot script instead of creating a separate service
+# Customize hook for bdebstrap: Add kaptive configuration directly into Raspberry Pi's firstboot
+# This inlines all kaptive kiosk configuration into the firstboot script
 
 set -eu
 
 ROOTFS="$1"
 FIRSTBOOT="$ROOTFS/usr/lib/raspberrypi-sys-mods/firstboot"
 
-# Create the kaptive configuration function
-cat > "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config" << 'KAPTIVE_CONFIG'
-#!/bin/bash
-# Kaptive kiosk configuration - called from firstboot
-# Configures services for the actual user (UID 1000) regardless of username
-# Note: This runs as root during firstboot, no sudo needed
-
-set -x  # Debug: print commands as they execute
-
-configure_kaptive() {
-    echo "Kaptive: Starting configuration..."
-    
-    # Use the same method as Raspberry Pi's imager_custom script
-    FIRSTUSER=$(getent passwd 1000 | cut -d: -f1)
-    FIRSTUSERHOME=$(getent passwd 1000 | cut -d: -f6)
-
-    if [ -z "$FIRSTUSER" ] || [ -z "$FIRSTUSERHOME" ]; then
-        echo "Kaptive: Could not determine primary user (UID 1000)"
-        return 1
-    fi
-
-    echo "Kaptive: Configuring kiosk for user: $FIRSTUSER (home: $FIRSTUSERHOME)"
-
-    # Update systemd service files with actual username and home directory
-    for service_file in /etc/systemd/system/labwc.service \
-                        /etc/systemd/system/squeekboard.service \
-                        /etc/systemd/system/multi-user.target.wants/kaptive-launcher.service \
-                        /etc/systemd/system/multi-user.target.wants/kaptive-player-agent.service; do
-        if [ -f "$service_file" ]; then
-            echo "Kaptive: Updating $service_file"
-            sed -i \
-                -e "s|<KIOSK_USER>|$FIRSTUSER|g" \
-                -e "s|<KIOSK_RUNDIR>|$FIRSTUSERHOME|g" \
-                -e "s|<PLAYER_RUNDIR>|$FIRSTUSERHOME|g" \
-                "$service_file"
-        else
-            echo "Kaptive: Service file not found: $service_file"
-        fi
-    done
-
-    # Create labwc config directory
-    mkdir -p "$FIRSTUSERHOME/.config/labwc"
-
-    # Copy template configs from /etc/skel
-    if [ -d "/etc/skel/.config/labwc" ]; then
-        for config_file in rc.xml autostart environment; do
-            if [ -f "/etc/skel/.config/labwc/$config_file" ] && \
-               [ ! -f "$FIRSTUSERHOME/.config/labwc/$config_file" ]; then
-                echo "Kaptive: Copying $config_file to $FIRSTUSERHOME/.config/labwc/"
-                cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
-            fi
-        done
-    fi
-
-    # Set correct ownership
-    chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
-    [ -d "/opt/kaptive" ] && chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
-
-    echo "Kaptive: Configuration complete"
-}
-
-configure_kaptive
-KAPTIVE_CONFIG
-
-chmod +x "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config"
-
-# Patch the firstboot script to call our configuration before reboot
+# Patch the firstboot script to include our configuration directly
 if [ -f "$FIRSTBOOT" ]; then
-    # Add our config call inside main() before return 0
-    # This ensures filesystems can be remounted rw
-    if ! grep -q "kaptive_config" "$FIRSTBOOT"; then
-        # Insert before "return 0" in main(), with filesystem remount
+    if ! grep -q "Configure Kaptive kiosk" "$FIRSTBOOT"; then
+        # Insert kaptive configuration before "return 0" in main()
         sed -i '/^  return 0$/i\
   # Configure Kaptive kiosk\
   whiptail --infobox "Configuring Kaptive kiosk..." 20 60\
   mount -o remount,rw /\
-  /usr/lib/raspberrypi-sys-mods/kaptive_config > /var/log/kaptive_firstboot.log 2>&1 || echo "Kaptive config failed" >> /var/log/kaptive_firstboot.log\
+  \
+  # Detect the primary user (UID 1000) regardless of username\
+  KAPTIVE_USER=$(getent passwd 1000 | cut -d: -f1)\
+  KAPTIVE_HOME=$(getent passwd 1000 | cut -d: -f6)\
+  \
+  if [ -n "$KAPTIVE_USER" ] && [ -n "$KAPTIVE_HOME" ]; then\
+    echo "Kaptive: Configuring for user $KAPTIVE_USER (home: $KAPTIVE_HOME)" >> /var/log/kaptive_firstboot.log\
+    \
+    # Update systemd service files with actual username and home directory\
+    for svc in /etc/systemd/system/labwc.service \\\
+               /etc/systemd/system/squeekboard.service \\\
+               /lib/systemd/system/kaptive-launcher.service \\\
+               /lib/systemd/system/kaptive-player-agent.service; do\
+      if [ -f "$svc" ]; then\
+        sed -i -e "s|<KIOSK_USER>|$KAPTIVE_USER|g" \\\
+               -e "s|Environment=\"XDG_RUNTIME_DIR=.*\"|Environment=\"XDG_RUNTIME_DIR=$KAPTIVE_HOME\"|g" "$svc"\
+        echo "Kaptive: Updated $svc" >> /var/log/kaptive_firstboot.log\
+      fi\
+    done\
+    \
+    # Create labwc config directory and copy templates\
+    mkdir -p "$KAPTIVE_HOME/.config/labwc"\
+    if [ -d "/etc/skel/.config/labwc" ]; then\
+      cp -n /etc/skel/.config/labwc/* "$KAPTIVE_HOME/.config/labwc/" 2>/dev/null || true\
+    fi\
+    \
+    # Set correct ownership\
+    chown -R "$KAPTIVE_USER:$KAPTIVE_USER" "$KAPTIVE_HOME/.config"\
+    [ -d "/opt/kaptive" ] && chown -R "$KAPTIVE_USER:$KAPTIVE_USER" /opt/kaptive\
+    \
+    # Re-enable services to ensure symlinks point to updated files\
+    systemctl enable labwc.service squeekboard.service kaptive-launcher.service kaptive-player-agent.service 2>/dev/null || true\
+    \
+    echo "Kaptive: Configuration complete" >> /var/log/kaptive_firstboot.log\
+  else\
+    echo "Kaptive: ERROR - Could not determine primary user (UID 1000)" >> /var/log/kaptive_firstboot.log\
+  fi\
+  \
   mount -o remount,ro /
 ' "$FIRSTBOOT"
         
         # Verify the patch was applied
-        if grep -q "kaptive_config" "$FIRSTBOOT"; then
+        if grep -q "Configure Kaptive kiosk" "$FIRSTBOOT"; then
             echo "Patched firstboot to include Kaptive configuration"
         else
             echo "ERROR: Failed to patch firstboot script"
