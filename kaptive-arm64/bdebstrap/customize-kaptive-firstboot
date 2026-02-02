@@ -12,8 +12,13 @@ cat > "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config" << 'KAPTIVE_CONFIG'
 #!/bin/bash
 # Kaptive kiosk configuration - called from firstboot
 # Configures services for the actual user (UID 1000) regardless of username
+# Note: This runs as root during firstboot, no sudo needed
+
+set -x  # Debug: print commands as they execute
 
 configure_kaptive() {
+    echo "Kaptive: Starting configuration..."
+    
     # Use the same method as Raspberry Pi's imager_custom script
     FIRSTUSER=$(getent passwd 1000 | cut -d: -f1)
     FIRSTUSERHOME=$(getent passwd 1000 | cut -d: -f6)
@@ -23,38 +28,42 @@ configure_kaptive() {
         return 1
     fi
 
-    echo "Kaptive: Configuring kiosk for user: $FIRSTUSER"
+    echo "Kaptive: Configuring kiosk for user: $FIRSTUSER (home: $FIRSTUSERHOME)"
 
     # Update systemd service files with actual username and home directory
     for service_file in /etc/systemd/system/labwc.service \
                         /etc/systemd/system/squeekboard.service \
-                        /etc/systemd/system/kaptive-launcher.service \
-                        /etc/systemd/system/kaptive-player-agent.service; do
+                        /etc/systemd/system/multi-user.target.wants/kaptive-launcher.service \
+                        /etc/systemd/system/multi-user.target.wants/kaptive-player-agent.service; do
         if [ -f "$service_file" ]; then
-            sudo sed -i \
+            echo "Kaptive: Updating $service_file"
+            sed -i \
                 -e "s|<KIOSK_USER>|$FIRSTUSER|g" \
                 -e "s|<KIOSK_RUNDIR>|$FIRSTUSERHOME|g" \
                 -e "s|<PLAYER_RUNDIR>|$FIRSTUSERHOME|g" \
                 "$service_file"
+        else
+            echo "Kaptive: Service file not found: $service_file"
         fi
     done
 
     # Create labwc config directory
-    sudo mkdir -p "$FIRSTUSERHOME/.config/labwc"
+    mkdir -p "$FIRSTUSERHOME/.config/labwc"
 
     # Copy template configs from /etc/skel
     if [ -d "/etc/skel/.config/labwc" ]; then
         for config_file in rc.xml autostart environment; do
             if [ -f "/etc/skel/.config/labwc/$config_file" ] && \
                [ ! -f "$FIRSTUSERHOME/.config/labwc/$config_file" ]; then
-                sudo cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
+                echo "Kaptive: Copying $config_file to $FIRSTUSERHOME/.config/labwc/"
+                cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
             fi
         done
     fi
 
     # Set correct ownership
-    sudo chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
-    [ -d "/opt/kaptive" ] && sudo chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
+    chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
+    [ -d "/opt/kaptive" ] && chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
 
     echo "Kaptive: Configuration complete"
 }
@@ -66,14 +75,24 @@ chmod +x "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config"
 
 # Patch the firstboot script to call our configuration before reboot
 if [ -f "$FIRSTBOOT" ]; then
-    # Add our config call just before the reboot_pi call in main()
+    # Add our config call inside main() before return 0
+    # This ensures filesystems can be remounted rw
     if ! grep -q "kaptive_config" "$FIRSTBOOT"; then
-        sed -i '/^main () {/,/^}/ {
-            /return 0/i\
+        # Insert before "return 0" in main(), with filesystem remount
+        sed -i '/^  return 0$/i\
   # Configure Kaptive kiosk\
-  /usr/lib/raspberrypi-sys-mods/kaptive_config
-        }' "$FIRSTBOOT"
-        echo "Patched firstboot to include Kaptive configuration"
+  whiptail --infobox "Configuring Kaptive kiosk..." 20 60\
+  mount -o remount,rw /\
+  /usr/lib/raspberrypi-sys-mods/kaptive_config > /var/log/kaptive_firstboot.log 2>&1 || echo "Kaptive config failed" >> /var/log/kaptive_firstboot.log\
+  mount -o remount,ro /
+' "$FIRSTBOOT"
+        
+        # Verify the patch was applied
+        if grep -q "kaptive_config" "$FIRSTBOOT"; then
+            echo "Patched firstboot to include Kaptive configuration"
+        else
+            echo "ERROR: Failed to patch firstboot script"
+        fi
     fi
 else
     echo "Warning: firstboot script not found at $FIRSTBOOT"
