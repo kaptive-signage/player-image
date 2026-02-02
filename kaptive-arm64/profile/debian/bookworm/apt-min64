@@ -7,7 +7,7 @@ rpi/misc-utils
 rpi/base/essential
 rpi/boot-firmware
 rpi/arm64/linux-image-v8
-rpi/vetra-dependencies
+rpi/kaptive-dependencies
 rpi/user-credentials
 rpi/misc-skel
 sys-apps/systemd-net-min
