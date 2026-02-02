@@ -54,14 +54,14 @@ EOF
 fi
 
 # Write out our systemd services
-# First the labwc compositor service
+# labwc compositor service
 cat ../labwc.service.tpl | sed \
    -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
    -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \
    > $1/etc/systemd/system/labwc.service
 
 
-# Finally the squeekboard virtual keyboard service
+# squeekboard virtual keyboard service
 cat ../squeekboard.service.tpl | sed \
    -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
    -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \

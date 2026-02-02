@@ -1,9 +1,6 @@
-device_hostname=kaptive-player
+device_hostname=kaptive-staging-player
 device_user1=kaptive
 device_user1pass=kaptive
+enable_ssh=true
 image_name=kaptive-player-staging-arm64
-player_chromium=yes
-player_url=https://player.kaptive.staging.int.statesystems.ch
-app_url=https://app.kaptive.staging.int.statesystems.ch
-jwt_issuer=https://api.kaptive.staging.int.statesystems.ch
 device_locale1=en_US.UTF-8 UTF-8

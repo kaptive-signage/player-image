@@ -26,4 +26,9 @@ mmdebstrap:
       AuthenticationMethods publickey
       EOCHROOT
       fi
-    - $BDEBSTRAP_HOOKS/enable-units "$1" ssh
+    - |-
+      if [ "$IGconf_enable_ssh" = "true" ]; then
+         $BDEBSTRAP_HOOKS/enable-units "$1" ssh
+      else
+         $BDEBSTRAP_HOOKS/disable-units "$1" ssh
+      fi
