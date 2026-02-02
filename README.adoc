@@ -1,4 +1,4 @@
-= kaptive-player image
+= Kaptive player image
 
 Small image for Raspberry Pi 5 with the kaptive player.
 
