@@ -1,0 +1,79 @@
+#!/bin/sh
+# Customize hook for bdebstrap: Add kaptive configuration to Raspberry Pi's firstboot
+# This patches the existing firstboot script instead of creating a separate service
+
+set -eu
+
+ROOTFS="$1"
+FIRSTBOOT="$ROOTFS/usr/lib/raspberrypi-sys-mods/firstboot"
+
+# Create the kaptive configuration function
+cat > "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config" << 'KAPTIVE_CONFIG'
+#!/bin/bash
+# Kaptive kiosk configuration - called from firstboot
+# Configures services for the actual user (UID 1000) regardless of username
+
+configure_kaptive() {
+    # Use the same method as Raspberry Pi's imager_custom script
+    FIRSTUSER=$(getent passwd 1000 | cut -d: -f1)
+    FIRSTUSERHOME=$(getent passwd 1000 | cut -d: -f6)
+
+    if [ -z "$FIRSTUSER" ] || [ -z "$FIRSTUSERHOME" ]; then
+        echo "Kaptive: Could not determine primary user (UID 1000)"
+        return 1
+    fi
+
+    echo "Kaptive: Configuring kiosk for user: $FIRSTUSER"
+
+    # Update systemd service files with actual username
+    for service_file in /etc/systemd/system/labwc.service \
+                        /etc/systemd/system/squeekboard.service; do
+        if [ -f "$service_file" ] && grep -q '<KIOSK_USER>' "$service_file"; then
+            sed -i \
+                -e "s|<KIOSK_USER>|$FIRSTUSER|g" \
+                -e "s|<KIOSK_RUNDIR>|$FIRSTUSERHOME|g" \
+                "$service_file"
+        fi
+    done
+
+    # Create labwc config directory
+    mkdir -p "$FIRSTUSERHOME/.config/labwc"
+
+    # Copy template configs from /etc/skel
+    if [ -d "/etc/skel/.config/labwc" ]; then
+        for config_file in rc.xml autostart environment; do
+            if [ -f "/etc/skel/.config/labwc/$config_file" ] && \
+               [ ! -f "$FIRSTUSERHOME/.config/labwc/$config_file" ]; then
+                cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
+            fi
+        done
+    fi
+
+    # Set correct ownership
+    chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
+    [ -d "/opt/kaptive" ] && chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
+
+    echo "Kaptive: Configuration complete"
+}
+
+configure_kaptive
+KAPTIVE_CONFIG
+
+chmod +x "$ROOTFS/usr/lib/raspberrypi-sys-mods/kaptive_config"
+
+# Patch the firstboot script to call our configuration before reboot
+if [ -f "$FIRSTBOOT" ]; then
+    # Add our config call just before the reboot_pi call in main()
+    if ! grep -q "kaptive_config" "$FIRSTBOOT"; then
+        sed -i '/^main () {/,/^}/ {
+            /return 0/i\
+  # Configure Kaptive kiosk\
+  /usr/lib/raspberrypi-sys-mods/kaptive_config
+        }' "$FIRSTBOOT"
+        echo "Patched firstboot to include Kaptive configuration"
+    fi
+else
+    echo "Warning: firstboot script not found at $FIRSTBOOT"
+fi
+
+echo "Kaptive firstboot configuration installed"

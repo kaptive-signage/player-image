@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       gpg-agent \
   && rm -rf /var/lib/apt/lists/*
 
-ARG RPIIG_GIT_SHA bc3d223e76e2a0b069034fa6c6399232fa4241da
+ARG RPIIG_GIT_SHA=bc3d223e76e2a0b069034fa6c6399232fa4241da
 RUN git clone --no-checkout https://github.com/raspberrypi/rpi-image-gen.git && cd rpi-image-gen && git checkout ${RPIIG_GIT_SHA}
 
 ARG TARGETARCH

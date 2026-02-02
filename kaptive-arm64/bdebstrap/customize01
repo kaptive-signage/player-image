@@ -39,7 +39,8 @@ EOF
             pkg_name=$(basename "$pkg")
             echo "Installing package: $pkg_name"
             cp "$pkg" "$1/tmp/"
-            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y /tmp/$pkg_name"
+            # Use generic path - actual home will be determined at firstboot
+            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt install -y /tmp/$pkg_name"
             rm "$1/tmp/$pkg_name"
         fi
     done
@@ -53,32 +54,27 @@ EOF
     rm -f "$1/usr/sbin/policy-rc.d"
 fi
 
-# Write out our systemd services
-# labwc compositor service
-cat ../labwc.service.tpl | sed \
-   -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
-   -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \
-   > $1/etc/systemd/system/labwc.service
+# Write out our systemd services with PLACEHOLDERS
+# These will be configured by kaptive-firstboot.service on first boot
+# The firstboot service detects the actual user (UID 1000) regardless of username
 
+# First the labwc compositor service (keep placeholders for firstboot)
+cat ../labwc.service.tpl > $1/etc/systemd/system/labwc.service
 
-# squeekboard virtual keyboard service
-cat ../squeekboard.service.tpl | sed \
-   -e "s|<KIOSK_USER>|$IGconf_device_user1|g" \
-   -e "s|<KIOSK_RUNDIR>|\/home\/$IGconf_device_user1|g" \
-   > $1/etc/systemd/system/squeekboard.service
+# The squeekboard virtual keyboard service (keep placeholders for firstboot)
+cat ../squeekboard.service.tpl > $1/etc/systemd/system/squeekboard.service
 
-# Setup kaptive device agent
+# Setup kaptive application directory
 mkdir -p $1/opt/kaptive
+# Permissions will be set by firstboot after user is known
+chmod -R 755 $1/opt/kaptive
 
-# Set permissions on /opt/kaptive folder recursively
-chroot $1 chown -R $IGconf_device_user1:$IGconf_device_user1 /opt/kaptive
-chroot $1 chmod -R 755 /opt/kaptive
-
-# Create labwc config directory and file
-mkdir -p $1/home/$IGconf_device_user1/.config/labwc
-cat ../labwc-rc.xml.tpl > $1/home/$IGconf_device_user1/.config/labwc/rc.xml
-cat ../labwc-autostart.tpl > $1/home/$IGconf_device_user1/.config/labwc/autostart
-chroot $1 chown -R $IGconf_device_user1:$IGconf_device_user1 /home/$IGconf_device_user1/.config
+# Store labwc config in /etc/skel so it gets copied to any new user's home
+# This makes the config username-agnostic
+mkdir -p $1/etc/skel/.config/labwc
+cat ../labwc-rc.xml.tpl > $1/etc/skel/.config/labwc/rc.xml
+cat ../labwc-autostart.tpl > $1/etc/skel/.config/labwc/autostart
+chmod -R 755 $1/etc/skel/.config
 
 # Customize NetworkManager-wait-online.service timeout
 if [ -f "$1/lib/systemd/system/NetworkManager-wait-online.service" ]; then

@@ -3,6 +3,13 @@
 
   <desktops number="1" />
 
+  <keyboard>
+    <!-- Network/WiFi configuration keybinding (Super+N) -->
+    <keybind key="W-n">
+      <action name="Execute" command="nm-connection-editor" />
+    </keybind>
+  </keyboard>
+
   <windowRules>
     <windowRule identifier="*chromium*" matchOnce="true">
      <action name="MoveToOutput" direction="right" wrap="yes" />

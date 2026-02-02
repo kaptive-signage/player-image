@@ -14,5 +14,6 @@ mmdebstrap:
     - firmware-marvell-prestera-
     - raspberrypi-net-mods
     - network-manager
+    - network-manager-gnome
     - net-tools
   install-recommends: false
