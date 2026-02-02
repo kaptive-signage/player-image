@@ -39,8 +39,7 @@ EOF
             pkg_name=$(basename "$pkg")
             echo "Installing package: $pkg_name"
             cp "$pkg" "$1/tmp/"
-            # Use generic path - actual home will be determined at firstboot
-            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt install -y /tmp/$pkg_name"
+            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y /tmp/$pkg_name"
             rm "$1/tmp/$pkg_name"
         fi
     done

@@ -25,33 +25,36 @@ configure_kaptive() {
 
     echo "Kaptive: Configuring kiosk for user: $FIRSTUSER"
 
-    # Update systemd service files with actual username
+    # Update systemd service files with actual username and home directory
     for service_file in /etc/systemd/system/labwc.service \
-                        /etc/systemd/system/squeekboard.service; do
-        if [ -f "$service_file" ] && grep -q '<KIOSK_USER>' "$service_file"; then
-            sed -i \
+                        /etc/systemd/system/squeekboard.service \
+                        /etc/systemd/system/kaptive-launcher.service \
+                        /etc/systemd/system/kaptive-player-agent.service; do
+        if [ -f "$service_file" ]; then
+            sudo sed -i \
                 -e "s|<KIOSK_USER>|$FIRSTUSER|g" \
                 -e "s|<KIOSK_RUNDIR>|$FIRSTUSERHOME|g" \
+                -e "s|<PLAYER_RUNDIR>|$FIRSTUSERHOME|g" \
                 "$service_file"
         fi
     done
 
     # Create labwc config directory
-    mkdir -p "$FIRSTUSERHOME/.config/labwc"
+    sudo mkdir -p "$FIRSTUSERHOME/.config/labwc"
 
     # Copy template configs from /etc/skel
     if [ -d "/etc/skel/.config/labwc" ]; then
         for config_file in rc.xml autostart environment; do
             if [ -f "/etc/skel/.config/labwc/$config_file" ] && \
                [ ! -f "$FIRSTUSERHOME/.config/labwc/$config_file" ]; then
-                cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
+                sudo cp "/etc/skel/.config/labwc/$config_file" "$FIRSTUSERHOME/.config/labwc/"
             fi
         done
     fi
 
     # Set correct ownership
-    chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
-    [ -d "/opt/kaptive" ] && chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
+    sudo chown -R "$FIRSTUSER:$FIRSTUSER" "$FIRSTUSERHOME/.config" 2>/dev/null || true
+    [ -d "/opt/kaptive" ] && sudo chown -R "$FIRSTUSER:$FIRSTUSER" /opt/kaptive
 
     echo "Kaptive: Configuration complete"
 }
