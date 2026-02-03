@@ -27,3 +27,4 @@ mmdebstrap:
     - grim
     - libnss3-tools
     - unzip
+    - gpg

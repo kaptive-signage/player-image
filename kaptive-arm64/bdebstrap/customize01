@@ -9,58 +9,47 @@ echo "en_US.UTF-8 UTF-8" > $1/etc/locale.gen
 
 chroot $1 apt install -y locales
 
-# Install bun
-chroot $1 /bin/sh -c "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash"
+# Install kaptive from APT repository
 
-# Install packages from the packages folder
-PACKAGES_DIR="${SCRIPT_DIR}/../packages"
-
-if [ -d "$PACKAGES_DIR" ]; then
-    # Prevent services from starting during installation
-    cat > "$1/usr/sbin/policy-rc.d" << 'EOF'
+# Prevent services from starting during installation
+cat > "$1/usr/sbin/policy-rc.d" << 'EOF'
 #!/bin/sh
 exit 101
 EOF
-    chmod +x "$1/usr/sbin/policy-rc.d"
+chmod +x "$1/usr/sbin/policy-rc.d"
 
-    # Mask systemctl to prevent systemd calls in postinst scripts
-    if [ ! -e "$1/usr/bin/systemctl.orig" ] && [ -e "$1/usr/bin/systemctl" ]; then
-        mv "$1/usr/bin/systemctl" "$1/usr/bin/systemctl.orig"
-    fi
-    cat > "$1/usr/bin/systemctl" << 'EOF'
+# Mask systemctl to prevent systemd calls in postinst scripts
+if [ ! -e "$1/usr/bin/systemctl.orig" ] && [ -e "$1/usr/bin/systemctl" ]; then
+    mv "$1/usr/bin/systemctl" "$1/usr/bin/systemctl.orig"
+fi
+cat > "$1/usr/bin/systemctl" << 'EOF'
 #!/bin/sh
 echo "Skipping systemctl $@"
 exit 0
 EOF
-    chmod +x "$1/usr/bin/systemctl"
+chmod +x "$1/usr/bin/systemctl"
 
-    for pkg in "$PACKAGES_DIR"/*.deb; do
-        if [ -f "$pkg" ]; then
-            pkg_name=$(basename "$pkg")
-            echo "Installing package: $pkg_name"
-            cp "$pkg" "$1/tmp/"
-            chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y /tmp/$pkg_name"
-            rm "$1/tmp/$pkg_name"
-        fi
-    done
+# Import the signing key
+chroot "$1" /bin/sh -c "curl -fsSL https://kaptive-signage.github.io/apt/key.gpg.asc | gpg --dearmor -o /usr/share/keyrings/kaptive.gpg"
 
-    # Restore original systemctl
-    if [ -e "$1/usr/bin/systemctl.orig" ]; then
-        mv "$1/usr/bin/systemctl.orig" "$1/usr/bin/systemctl"
-    fi
+# Add the repository
+echo 'deb [arch=arm64 signed-by=/usr/share/keyrings/kaptive.gpg] https://kaptive-signage.github.io/apt bookworm main' > "$1/etc/apt/sources.list.d/kaptive.list"
 
-    # Remove policy-rc.d
-    rm -f "$1/usr/sbin/policy-rc.d"
+# Install kaptive
+chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y kaptive-signage"
+
+# Restore original systemctl
+if [ -e "$1/usr/bin/systemctl.orig" ]; then
+    mv "$1/usr/bin/systemctl.orig" "$1/usr/bin/systemctl"
 fi
 
-# Write out our systemd services with PLACEHOLDERS
-# These will be configured by kaptive-firstboot.service on first boot
-# The firstboot service detects the actual user (UID 1000) regardless of username
+# Remove policy-rc.d
+rm -f "$1/usr/sbin/policy-rc.d"
 
-# First the labwc compositor service (keep placeholders for firstboot)
+# Copy labwc compositor service
 cat ../labwc.service.tpl > $1/etc/systemd/system/labwc.service
 
-# The squeekboard virtual keyboard service (keep placeholders for firstboot)
+# Copy squeekboard virtual keyboard service
 cat ../squeekboard.service.tpl > $1/etc/systemd/system/squeekboard.service
 
 # Setup kaptive application directory

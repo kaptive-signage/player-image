@@ -13,3 +13,9 @@ chroot $1 mkdir -p /etc/xdg/autostart
 chroot $1 apt install -y squeekboard
 
 cp ../keyboard/us_wide.yaml $1/usr/share/misc/squeekboard/keyboards/us_wide.yaml
+
+# Clean apt cache to reduce image size
+chroot $1 apt-get clean
+
+# Delete cached package lists
+rm -rf $1/var/lib/apt/lists/*

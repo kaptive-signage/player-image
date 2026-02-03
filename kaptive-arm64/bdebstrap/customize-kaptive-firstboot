@@ -30,7 +30,7 @@ if [ -f "$FIRSTBOOT" ]; then
                /lib/systemd/system/kaptive-player-agent.service; do\
       if [ -f "$svc" ]; then\
         sed -i -e "s|<KIOSK_USER>|$KAPTIVE_USER|g" \\\
-               -e "s|Environment=\"XDG_RUNTIME_DIR=.*\"|Environment=\"XDG_RUNTIME_DIR=$KAPTIVE_HOME\"|g" "$svc"\
+               -e "s|Environment=.XDG_RUNTIME_DIR=[^.]*.|Environment=\"XDG_RUNTIME_DIR=$KAPTIVE_HOME\"|g" "$svc"\
         echo "Kaptive: Updated $svc" >> /var/log/kaptive_firstboot.log\
       fi\
     done\
