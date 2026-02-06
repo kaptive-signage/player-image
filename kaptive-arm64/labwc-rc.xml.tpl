@@ -5,7 +5,7 @@
 
   <keyboard>
     <!-- 
-      Only Shift+F5 (force reload) is allowed.
+      Only Shift+F5 (force reload), Ctrl+Alt+W (Enter wifi config) and Esc (Escape) are allowed.
     -->
     
     <!-- ==================== MODIFIER KEYS ALONE ==================== -->
@@ -121,7 +121,6 @@
     <keybind key="C-t"><action name="Execute" command="true" /></keybind>
     <keybind key="C-u"><action name="Execute" command="true" /></keybind>
     <keybind key="C-v"><action name="Execute" command="true" /></keybind>
-    <keybind key="C-w"><action name="Execute" command="true" /></keybind>
     <keybind key="C-x"><action name="Execute" command="true" /></keybind>
     <keybind key="C-y"><action name="Execute" command="true" /></keybind>
     <keybind key="C-z"><action name="Execute" command="true" /></keybind>
@@ -417,7 +416,6 @@
     <keybind key="C-A-End"><action name="Execute" command="true" /></keybind>
     
     <!-- ==================== ESCAPE KEY COMBINATIONS ==================== -->
-    <keybind key="Escape"><action name="Execute" command="true" /></keybind>
     <keybind key="S-Escape"><action name="Execute" command="true" /></keybind>
     <keybind key="C-Escape"><action name="Execute" command="true" /></keybind>
     <keybind key="C-S-Escape"><action name="Execute" command="true" /></keybind>

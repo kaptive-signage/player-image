@@ -33,7 +33,7 @@ chmod +x "$1/usr/bin/systemctl"
 chroot "$1" /bin/sh -c "curl -fsSL https://kaptive-signage.github.io/apt/key.gpg.asc | gpg --dearmor -o /usr/share/keyrings/kaptive.gpg"
 
 # Add the repository
-echo 'deb [arch=arm64 signed-by=/usr/share/keyrings/kaptive.gpg] https://kaptive-signage.github.io/apt bookworm main' > "$1/etc/apt/sources.list.d/kaptive.list"
+echo "deb [arch=arm64 signed-by=/usr/share/keyrings/kaptive.gpg] https://kaptive-signage.github.io/apt ${IGconf_apt_distribution} main" > "$1/etc/apt/sources.list.d/kaptive.list"
 
 # Install kaptive
 chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y kaptive-signage"
@@ -73,6 +73,12 @@ fi
 if [ -f "$1/lib/systemd/system/systemd-networkd-wait-online.service" ]; then
     sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=15|' "$1/lib/systemd/system/systemd-networkd-wait-online.service"
 fi
+
+# Copy nginx fileserver configuration and replace PLAYER_URL placeholder
+mkdir -p "$1/etc/nginx/sites-available"
+mkdir -p "$1/etc/nginx/sites-enabled"
+sed "s|<PLAYER_URL>|${IGconf_device_player_url}|g" ../fileserver/nginx.conf.tpl > "$1/etc/nginx/sites-available/fileserver"
+ln -sf /etc/nginx/sites-available/fileserver "$1/etc/nginx/sites-enabled/fileserver"
 
 # Enable services so they start automatically
 $BDEBSTRAP_HOOKS/enable-units "$1" labwc

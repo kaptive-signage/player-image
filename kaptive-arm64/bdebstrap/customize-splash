@@ -14,4 +14,9 @@ rsync -a ../plymouth/themes/kaptive $1/usr/share/plymouth/themes/
 chmod 644 $1/usr/share/plymouth/themes/kaptive/*
 
 # set the default theme to kaptive
-chroot $1 plymouth-set-default-theme kaptive
+chroot $1 plymouth-set-default-theme --rebuild-initrd kaptive
+
+# Mask plymouth-quit so Plymouth stays active until labwc takes over the display.
+# labwc.service deactivates and quits Plymouth itself (see labwc.service.tpl).
+ln -sf "/dev/null" "$1/etc/systemd/system/plymouth-quit.service"
+ln -sf "/dev/null" "$1/etc/systemd/system/plymouth-quit-wait.service"

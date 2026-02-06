@@ -3,4 +3,6 @@ device_user1=kaptive
 device_user1pass=kaptive
 enable_ssh=true
 image_name=kaptive-player-staging-arm64
+device_player_url=https://device-player.kaptive.staging.int.statesystems.ch
+apt_distribution=bookworm-staging
 device_locale1=en_US.UTF-8 UTF-8

@@ -28,3 +28,4 @@ mmdebstrap:
     - libnss3-tools
     - unzip
     - gpg
+    - nginx

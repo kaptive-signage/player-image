@@ -10,7 +10,9 @@ Environment="XDG_RUNTIME_DIR=<KIOSK_RUNDIR>"
 Environment="XDG_DATA_DIRS=/usr/local/share:/usr/share"
 Restart=always
 RestartSec=2
+ExecStartPre=-+/usr/bin/plymouth deactivate
 ExecStart=/usr/bin/labwc
+ExecStartPost=-+/usr/bin/plymouth quit --retain-splash
 StandardError=journal
 
 [Install]
