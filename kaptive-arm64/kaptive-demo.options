@@ -1,0 +1,7 @@
+device_hostname=kaptive-demo-player
+device_user1=kaptive
+image_name=kaptive-player-demo-arm64
+enable_ssh=false
+device_player_url=https://device.player.demo.kaptive.dev
+apt_distribution=bookworm-demo
+device_locale1=en_US.UTF-8 UTF-8
