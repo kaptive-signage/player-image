@@ -121,6 +121,7 @@
     <keybind key="C-t"><action name="Execute" command="true" /></keybind>
     <keybind key="C-u"><action name="Execute" command="true" /></keybind>
     <keybind key="C-v"><action name="Execute" command="true" /></keybind>
+    <keybind key="C-w"><action name="Execute" command="true" /></keybind>
     <keybind key="C-x"><action name="Execute" command="true" /></keybind>
     <keybind key="C-y"><action name="Execute" command="true" /></keybind>
     <keybind key="C-z"><action name="Execute" command="true" /></keybind>
@@ -148,7 +149,6 @@
     <keybind key="A-t"><action name="Execute" command="true" /></keybind>
     <keybind key="A-u"><action name="Execute" command="true" /></keybind>
     <keybind key="A-v"><action name="Execute" command="true" /></keybind>
-    <keybind key="A-w"><action name="Execute" command="true" /></keybind>
     <keybind key="A-x"><action name="Execute" command="true" /></keybind>
     <keybind key="A-y"><action name="Execute" command="true" /></keybind>
     <keybind key="A-z"><action name="Execute" command="true" /></keybind>

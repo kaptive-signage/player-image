@@ -36,7 +36,7 @@ chroot "$1" /bin/sh -c "curl -fsSL https://kaptive-signage.github.io/apt/key.gpg
 echo "deb [arch=arm64 signed-by=/usr/share/keyrings/kaptive.gpg] https://kaptive-signage.github.io/apt ${IGconf_apt_distribution} main" > "$1/etc/apt/sources.list.d/kaptive.list"
 
 # Install kaptive
-chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive PLAYER_HOME_DIR=/home/kaptive apt install -y kaptive-signage"
+chroot "$1" /bin/sh -c "DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive PLAYER_USER=kaptive PLAYER_HOME_DIR=/home/kaptive apt install -y kaptive-signage"
 
 # Restore original systemctl
 if [ -e "$1/usr/bin/systemctl.orig" ]; then
@@ -85,6 +85,7 @@ $BDEBSTRAP_HOOKS/enable-units "$1" labwc
 $BDEBSTRAP_HOOKS/enable-units "$1" squeekboard
 $BDEBSTRAP_HOOKS/enable-units "$1" kaptive-player-agent
 $BDEBSTRAP_HOOKS/enable-units "$1" kaptive-launcher
+$BDEBSTRAP_HOOKS/enable-units "$1" kaptive-updater
 $BDEBSTRAP_HOOKS/enable-units "$1" nginx
 
 # Enable network manager wait online service
